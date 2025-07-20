@@ -20,6 +20,8 @@ export interface UserProfile {
   website?: string
   channelName?: string
   channelBanner?: string
+  categories?: string[]
+  schedule?: string
   socialLinks?: {
     twitter?: string
     youtube?: string
@@ -30,6 +32,7 @@ export interface UserProfile {
   followingCount: number
   isLive?: boolean
   lastLiveAt?: Date
+  hasUpcomingEvents?: boolean
   createdAt: Date
   updatedAt: Date
 }

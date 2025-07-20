@@ -170,6 +170,12 @@
         </div>
       </div>
     </div>
+
+    <!-- Welcome Modal -->
+    <WelcomeModal 
+      :show="showWelcomeModal" 
+      @close="() => { showWelcomeModal = false; router.push('/') }"
+    />
   </div>
 </template>
 
@@ -196,6 +202,7 @@ const form = ref({
 })
 
 const validationError = ref('')
+const showWelcomeModal = ref(false)
 
 // Handle sign up
 const handleSignUp = async () => {
@@ -226,8 +233,8 @@ const handleSignUp = async () => {
   try {
     await signUp(form.value.email, form.value.password, form.value.displayName)
     
-    // Redirect to home page
-    await router.push('/')
+    // Show welcome modal for new users, then redirect
+    showWelcomeModal.value = true
   } catch (err) {
     console.error('Sign up failed:', err)
   }

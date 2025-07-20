@@ -1,87 +1,85 @@
 <template>
-  <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-    <!-- Event Thumbnail -->
-    <div class="aspect-video bg-gray-200 relative">
-      <img 
-        v-if="event.thumbnailUrl" 
-        :src="event.thumbnailUrl" 
-        :alt="event.title"
-        class="w-full h-full object-cover"
-      />
-      <div v-else class="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-        <div class="text-white text-2xl">🎥</div>
+  <NuxtLink :to="`/events/${event.id}`" class="block group">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group-hover:scale-[1.02]">
+      <!-- Large Visual Thumbnail -->
+      <div class="aspect-video bg-gray-200 relative cursor-pointer overflow-hidden">
+        <img 
+          :src="thumbnailUrl" 
+          :alt="event.title"
+          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          @error="handleImageError"
+        />
+        
+        <!-- Live indicator -->
+        <div v-if="event.status === 'live'" class="absolute top-4 left-4 bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg">
+          <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          LIVE
+        </div>
+        
+        <!-- Viewer count for live streams -->
+        <div v-if="event.status === 'live' && event.attendeeCount > 0" class="absolute top-4 right-4 bg-black bg-opacity-75 text-white px-3 py-1.5 rounded-full text-sm font-medium">
+          👥 {{ formatViewerCount(event.attendeeCount) }}
+        </div>
+        
+        <!-- Platform badge -->
+        <div class="absolute bottom-4 right-4 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
+          {{ getEventTypeLabel(event.type) }}
+        </div>
+        
+        <!-- Duration badge for upcoming events -->
+        <div v-if="event.status === 'upcoming'" class="absolute bottom-4 left-4 bg-blue-500 text-white px-3 py-1.5 rounded-full text-sm font-medium">
+          {{ formatTimeUntil(event.startDate) }}
+        </div>
+        
+        <!-- Play overlay -->
+        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+          <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white bg-opacity-90 rounded-full p-4">
+            <svg class="w-8 h-8 text-gray-800" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M8 5v10l8-5-8-5z"/>
+            </svg>
+          </div>
+        </div>
       </div>
-      
-      <!-- Live indicator -->
-      <div v-if="event.status === 'live'" class="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold flex items-center gap-1">
-        <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-        LIVE
-      </div>
-      
-      <!-- Event type -->
-      <div class="absolute top-3 right-3 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-        {{ getEventTypeLabel(event.type) }}
+
+      <!-- Compact Event Info -->
+      <div class="p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-lg mb-1 line-clamp-2 group-hover:text-blue-600 transition-colors">{{ event.title }}</h3>
+            <div class="flex items-center gap-2 mb-2">
+              <img 
+                :src="getChannelAvatar()"
+                :alt="event.organizer"
+                class="w-6 h-6 rounded-full object-cover"
+              />
+              <span class="text-gray-600 text-sm font-medium">{{ event.organizer }}</span>
+              <button 
+                @click.prevent="toggleFollow"
+                :class="[
+                  'text-xs px-2 py-1 rounded-full transition-colors',
+                  isFollowing ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ]"
+              >
+                {{ isFollowing ? 'Following' : 'Follow' }}
+              </button>
+            </div>
+            <p v-if="event.status !== 'live'" class="text-gray-500 text-sm">
+              {{ formatEventTime(event.startDate) }}
+            </p>
+          </div>
+          
+          <!-- Status indicator -->
+          <div :class="[
+            'px-2 py-1 rounded-full text-xs font-medium',
+            event.status === 'live' ? 'bg-red-100 text-red-700' : 
+            event.status === 'upcoming' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+          ]">
+            {{ event.status === 'live' ? '🔴 Live' : event.status === 'upcoming' ? '📅 Soon' : '✓ Ended' }}
+          </div>
+        </div>
       </div>
     </div>
-
-    <!-- Event Content -->
-    <div class="p-4">
-      <h3 class="font-semibold text-lg mb-2 line-clamp-2">{{ event.title }}</h3>
-      <p class="text-gray-600 text-sm mb-3 line-clamp-2">{{ event.description }}</p>
-      
-      <!-- Event Details -->
-      <div class="space-y-2 mb-4">
-        <div class="flex items-center text-sm text-gray-500">
-          <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-          </svg>
-          {{ formatEventDate(event.startDate) }}
-        </div>
-        
-        <div class="flex items-center text-sm text-gray-500">
-          <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-          </svg>
-          {{ event.organizer }}
-        </div>
-        
-        <div v-if="event.attendeeCount > 0" class="flex items-center text-sm text-gray-500">
-          <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-          </svg>
-          {{ event.attendeeCount }} attending
-        </div>
-      </div>
-
-      <!-- Tags -->
-      <div v-if="event.tags.length > 0" class="flex flex-wrap gap-1 mb-4">
-        <span v-for="tag in event.tags.slice(0, 3)" :key="tag" class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-          {{ tag }}
-        </span>
-        <span v-if="event.tags.length > 3" class="text-gray-500 text-xs">
-          +{{ event.tags.length - 3 }} more
-        </span>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex gap-2">
-        <NuxtLink 
-          :to="`/events/${event.id}`"
-          class="flex-1 bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium text-center hover:bg-blue-700 transition-colors"
-        >
-          {{ event.status === 'live' ? 'Join Live' : 'View Details' }}
-        </NuxtLink>
-        
-        <button 
-          v-if="event.isEmbeddable && event.status === 'live'"
-          @click="openStream"
-          class="px-3 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors"
-        >
-          🎥
-        </button>
-      </div>
-    </div>
-  </div>
+  </NuxtLink>
 </template>
 
 <script setup lang="ts">
@@ -93,29 +91,162 @@ interface Props {
 
 const props = defineProps<Props>()
 
+// State
+const thumbnailUrl = ref('')
+const imageError = ref(false)
+const isFollowing = ref(false)
+
+// Load thumbnail on mount
+onMounted(async () => {
+  await loadThumbnail()
+  checkIfFollowing()
+})
+
+// Load platform thumbnail
+async function loadThumbnail() {
+  try {
+    if (props.event.thumbnailUrl) {
+      thumbnailUrl.value = props.event.thumbnailUrl
+      return
+    }
+    
+    if (props.event.type === 'youtube' && props.event.streamUrl) {
+      const videoId = extractYouTubeVideoId(props.event.streamUrl)
+      if (videoId) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { platform: 'youtube', videoId }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    if (props.event.type === 'twitch' && props.event.streamUrl) {
+      const channelName = extractTwitchChannelName(props.event.streamUrl)
+      if (channelName) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { platform: 'twitch', channelName }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    // Fallback to generated image
+    thumbnailUrl.value = generateFallbackImage()
+  } catch (error) {
+    console.warn('Failed to load thumbnail:', error)
+    thumbnailUrl.value = generateFallbackImage()
+  }
+}
+
+function extractYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+    /youtube\.com\/embed\/([^&\n?#]+)/
+  ]
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match) return match[1]
+  }
+  return null
+}
+
+function extractTwitchChannelName(url: string): string | null {
+  const match = url.match(/twitch\.tv\/(\w+)/)
+  return match ? match[1] : null
+}
+
+function generateFallbackImage(): string {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(props.event.title)}&background=3b82f6&color=fff&size=640x360&format=png`
+}
+
+function handleImageError() {
+  if (!imageError.value) {
+    imageError.value = true
+    thumbnailUrl.value = generateFallbackImage()
+  }
+}
+
+function getChannelAvatar(): string {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(props.event.organizer)}&background=6b7280&color=fff&size=32`
+}
+
 function getEventTypeLabel(type: Event['type']): string {
   const labels = {
     youtube: 'YouTube',
     twitch: 'Twitch',
     zoom: 'Zoom',
-    meet: 'Google Meet',
-    other: 'External'
+    meet: 'Meet',
+    other: 'Other'
   }
   return labels[type] || type
 }
 
-function formatEventDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(date))
+function formatEventTime(date: Date): string {
+  const now = new Date()
+  const eventDate = new Date(date)
+  const diffMs = eventDate.getTime() - now.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(eventDate)
+  } else if (diffDays === 1) {
+    return 'Tomorrow'
+  } else if (diffDays < 7) {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'short'
+    }).format(eventDate)
+  } else {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric'
+    }).format(eventDate)
+  }
 }
 
-function openStream() {
-  if (props.event.streamUrl) {
-    window.open(props.event.streamUrl, '_blank')
+function formatTimeUntil(date: Date): string {
+  const now = new Date()
+  const eventDate = new Date(date)
+  const diffMs = eventDate.getTime() - now.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffHours / 24)
+  
+  if (diffDays > 0) {
+    return `${diffDays}d`
+  } else if (diffHours > 0) {
+    return `${diffHours}h`
+  } else {
+    return 'Soon'
+  }
+}
+
+function formatViewerCount(count: number): string {
+  if (count >= 1000000) {
+    return (count / 1000000).toFixed(1) + 'M'
+  } else if (count >= 1000) {
+    return (count / 1000).toFixed(1) + 'K'
+  }
+  return count.toString()
+}
+
+async function checkIfFollowing() {
+  const { checkIsFollowing } = useFollowing()
+  isFollowing.value = await checkIsFollowing(props.event.organizerId)
+}
+
+async function toggleFollow(event: Event) {
+  event.stopPropagation()
+  const { toggleFollow } = useFollowing()
+  try {
+    await toggleFollow(props.event.organizerId)
+    isFollowing.value = !isFollowing.value
+  } catch (error) {
+    console.error('Failed to toggle follow:', error)
   }
 }
 </script>

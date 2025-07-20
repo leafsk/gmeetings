@@ -216,6 +216,15 @@ export const useFollowing = () => {
     }
   }
 
+  // Computed properties for live and offline channels
+  const liveChannels = computed(() => 
+    followedChannels.value.filter(channel => channel.isLive)
+  )
+  
+  const offlineChannels = computed(() => 
+    followedChannels.value.filter(channel => !channel.isLive)
+  )
+
   // Load suggested channels (users with most followers, excluding already followed)
   const loadSuggestedChannels = async (limit: number = 10): Promise<void> => {
     const currentUserId = user.value?.uid
@@ -291,6 +300,8 @@ export const useFollowing = () => {
     loading: readonly(loading),
     error: readonly(error),
     followedChannels: readonly(followedChannels),
+    liveChannels,
+    offlineChannels,
     suggestedChannels: readonly(suggestedChannels),
     isFollowing: readonly(isFollowing),
     followUser,

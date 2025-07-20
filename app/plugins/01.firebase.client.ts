@@ -3,16 +3,9 @@ import { getFirestore, connectFirestoreEmulator, enableNetwork, disableNetwork, 
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAtgiuOvkhFPLk8BS6BMVmxSdIRMdi8Bvk",
-  authDomain: "growni10x-community.firebaseapp.com",
-  projectId: "growni10x-community",
-  storageBucket: "growni10x-community.firebasestorage.app",
-  messagingSenderId: "586796477109",
-  appId: "1:586796477109:web:a2571e35a80595d4066cfc"
-};
-
 export default defineNuxtPlugin(() => {
+  const config = useRuntimeConfig();
+  const firebaseConfig = config.public.firebase;
   try {
     // Check if Firebase app already exists to avoid re-initialization
     let app;

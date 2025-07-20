@@ -309,19 +309,16 @@
         <div class="space-y-6">
           <!-- Tags -->
           <div>
-            <label for="tags" class="block text-sm font-medium text-gray-700 mb-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
               Tags
             </label>
-            <input
-              id="tags"
-              v-model="tagsInput"
-              type="text"
-              placeholder="community, tech, startup, networking (comma-separated)"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            <TagInput
+              v-model="form.tags"
+              placeholder="community, tech, startup, networking"
+              help-text="Add tags to help people find your event"
+              :suggestions="['community', 'tech', 'startup', 'networking', 'business', 'education', 'entertainment', 'gaming', 'music', 'art']"
+              :max-tags="5"
             />
-            <p class="text-sm text-gray-500 mt-1">
-              Add tags separated by commas to help people find your event
-            </p>
           </div>
 
           <!-- Capacity Settings -->
@@ -403,9 +400,17 @@ useHead({
   ]
 })
 
-// State
+// State  
 const { createEvent: createEventApi, loading, error } = useEvents()
+const { user, userProfile, isAuthenticated } = useAuth()
 const router = useRouter()
+
+// Redirect if not authenticated
+watchEffect(() => {
+  if (!isAuthenticated.value && !loading.value) {
+    navigateTo('/auth/login')
+  }
+})
 
 // Form data
 const form = ref<CreateEventData>({
@@ -424,19 +429,21 @@ const form = ref<CreateEventData>({
   maxParticipants: undefined
 })
 
-const tagsInput = ref('')
-
-// Watch tags input and convert to array
-watch(tagsInput, (newValue) => {
-  form.value.tags = newValue
-    .split(',')
-    .map(tag => tag.trim())
-    .filter(tag => tag.length > 0)
-})
+// Tags are now handled directly by the TagInput component
 
 const isAdhoc = ref(false)
 
 // Methods
+const formatDateTime = (date: Date): string => {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
+
 const onAdhocChange = () => {
   if (isAdhoc.value) {
     form.value.startDate = new Date()
@@ -472,6 +479,13 @@ onMounted(() => {
 // Create event
 const createEvent = async () => {
   try {
+    // Check authentication first
+    if (!user.value) {
+      alert('Please log in to create events')
+      await navigateTo('/auth/login')
+      return
+    }
+
     // Validate form
     if (!form.value.title || !form.value.description || !form.value.category || !form.value.type) {
       alert('Please fill in all required fields')
@@ -481,23 +495,25 @@ const createEvent = async () => {
     // Category-specific validation
     if (form.value.category === 'internal') {
       if (!form.value.streamUrl) {
-        alert('Stream URL is required for internal events')
+        alert('Stream URL is required for streaming events')
         return
       }
     } else if (form.value.category === 'external') {
-      if (!form.value.participantLink) {
-        alert('Participant meeting link is required for external events')
+      if (!form.value.stageUrl) {
+        alert('Stage URL is required for meeting events')
         return
       }
     }
 
-    // Convert string dates to Date objects
-    const startDate = new Date(form.value.startDate)
-    const endDate = new Date(form.value.endDate)
+    // Date validation for scheduled events
+    if (!isAdhoc.value) {
+      const startDate = new Date(form.value.startDate)
+      const endDate = new Date(form.value.endDate)
 
-    if (endDate <= startDate) {
-      alert('End time must be after start time')
-      return
+      if (endDate <= startDate) {
+        alert('End time must be after start time')
+        return
+      }
     }
 
     // Create event data with proper Date objects
@@ -510,10 +526,18 @@ const createEvent = async () => {
 
     const eventId = await createEventApi(eventData as CreateEventData)
     
+    // Show success message
+    if (isAdhoc.value) {
+      alert('🎉 Your event is now live! Redirecting to event page...')
+    } else {
+      alert('✅ Event scheduled successfully! Your followers will be notified.')
+    }
+    
     // Redirect to the created event
     await router.push(`/events/${eventId}`)
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to create event:', err)
+    alert(`Failed to create event: ${err.message || 'Unknown error'}`)
   }
 }
 </script>

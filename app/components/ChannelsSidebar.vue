@@ -1,22 +1,73 @@
 <template>
-  <aside class="fixed left-0 top-16 h-full w-60 bg-gray-50 border-r border-gray-200 z-30 overflow-y-auto">
-    <div class="p-4">
+  <aside 
+    :class="[
+      'bg-gray-50 border-r border-gray-200 transition-all duration-300 ease-in-out h-[calc(100vh-4rem)]',
+      isCollapsed ? 'w-16' : 'w-60',
+      'overflow-y-auto sticky top-16'
+    ]"
+  >
+    <!-- Collapsed State: Avatar Bar -->
+    <div v-if="isCollapsed" class="p-2">
+      <!-- Collapse Toggle -->
+      <button 
+        @click="toggleSidebar"
+        class="w-12 h-12 mb-4 flex items-center justify-center bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+        title="Expand sidebar"
+      >
+        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      
+      <!-- Live Channel Avatars -->
+      <div class="space-y-2">
+        <NuxtLink
+          v-for="channel in liveChannels"
+          :key="channel.id"
+          :to="`/channels/${channel.id}`"
+          class="block relative"
+          :title="`${channel.channelName} - LIVE`"
+        >
+          <img 
+            :src="channel.photoURL || '/default-avatar.png'"
+            :alt="channel.displayName"
+            class="w-12 h-12 rounded-lg object-cover border-2 border-red-500"
+          />
+          <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></div>
+        </NuxtLink>
+      </div>
+    </div>
+
+    <!-- Expanded State: Full Sidebar -->
+    <div v-else class="p-4">
       <!-- Followed Channels Section -->
       <div class="mb-6">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-medium text-gray-900 uppercase tracking-wide">Followed Channels</h3>
-          <button 
-            @click="toggleCollapsed"
-            class="text-gray-400 hover:text-gray-600"
-          >
-            <svg 
-              :class="['w-4 h-4 transition-transform', { 'rotate-180': collapsed }]" 
-              fill="currentColor" 
-              viewBox="0 0 20 20"
+          <div class="flex items-center gap-2">
+            <button 
+              @click="toggleCollapsed"
+              class="text-gray-400 hover:text-gray-600"
+              title="Collapse section"
             >
-              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-          </button>
+              <svg 
+                :class="['w-4 h-4 transition-transform', { 'rotate-180': collapsed }]" 
+                fill="currentColor" 
+                viewBox="0 0 20 20"
+              >
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <button 
+              @click="toggleSidebar"
+              class="text-gray-400 hover:text-gray-600"
+              title="Collapse sidebar"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div v-if="!collapsed">
@@ -93,27 +144,15 @@
 
       <!-- Quick Actions -->
       <div class="border-t border-gray-200 pt-4">
-        <div class="space-y-2">
-          <NuxtLink 
-            to="/channels/discover"
-            class="flex items-center w-full p-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
-          >
-            <svg class="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-            </svg>
-            Browse Channels
-          </NuxtLink>
-          
-          <NuxtLink 
-            to="/events/create"
-            class="flex items-center w-full p-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
-          >
-            <svg class="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            Go Live
-          </NuxtLink>
-        </div>
+        <NuxtLink 
+          to="/channels/discover"
+          class="flex items-center w-full p-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+        >
+          <svg class="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+          </svg>
+          Browse Channels
+        </NuxtLink>
       </div>
     </div>
   </aside>
@@ -131,8 +170,14 @@ const props = withDefaults(defineProps<Props>(), {
   show: true
 })
 
+// Emits
+const emit = defineEmits<{
+  toggleSidebar: []
+}>()
+
 // State
 const collapsed = ref(false)
+const isCollapsed = ref(false)
 const { 
   followedChannels, 
   loadFollowedChannels, 
@@ -151,6 +196,11 @@ const offlineChannels = computed(() =>
 // Methods
 const toggleCollapsed = () => {
   collapsed.value = !collapsed.value
+}
+
+const toggleSidebar = () => {
+  isCollapsed.value = !isCollapsed.value
+  emit('toggleSidebar')
 }
 
 const getLastSeenText = (lastLiveAt?: Date): string => {

@@ -78,7 +78,7 @@
               <!-- Edit Channel Button (for own channel) -->
               <div v-else class="pb-2">
                 <NuxtLink 
-                  to="/profile/edit"
+                  :to="`/channels/${channelId}/edit`"
                   class="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors text-sm lg:text-base"
                 >
                   Edit Channel

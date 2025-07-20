@@ -1,22 +1,70 @@
 <template>
   <div>
-    <!-- Hero Section -->
-    <section class="bg-gradient-to-br from-blue-600 to-blue-800 text-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div class="text-center">
-          <h1 class="text-4xl md:text-6xl font-bold mb-6">
-            Welcome to Slovakia Community
-          </h1>
-          <p class="text-xl md:text-2xl mb-8 text-blue-100">
-            Join live events, share stories, and help make Slovakia the best country to live in
-          </p>
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <NuxtLink to="/events" class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-              Browse Events
-            </NuxtLink>
-            <button class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
-              Create Event
-            </button>
+
+    <!-- Featured Live Event Section -->
+    <section v-if="featuredLiveEvent" class="bg-gradient-to-br from-red-50 to-pink-50 py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div 
+          class="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+          @click="$router.push(`/events/${featuredLiveEvent.id}`)"
+        >
+          <div class="p-6 lg:p-8">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="bg-red-500 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2">
+                <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                LIVE NOW
+              </span>
+              <span class="text-sm text-gray-500">Featured Stream</span>
+            </div>
+            
+            <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">{{ featuredLiveEvent.title }}</h1>
+            <p class="text-gray-600 text-lg mb-6 max-w-3xl">{{ featuredLiveEvent.description }}</p>
+            
+            <!-- Live Stream Embed -->
+            <div class="aspect-video bg-black rounded-lg overflow-hidden mb-6">
+              <iframe 
+                v-if="featuredLiveEvent.isEmbeddable && featuredLiveEvent.embedUrl"
+                :src="featuredLiveEvent.embedUrl"
+                class="w-full h-full"
+                frameborder="0"
+                allowfullscreen
+              ></iframe>
+              <div v-else class="w-full h-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center">
+                <div class="text-center text-white">
+                  <div class="text-6xl mb-4">🔴</div>
+                  <h3 class="text-xl font-semibold mb-2">Live Stream</h3>
+                  <p class="opacity-90">{{ featuredLiveEvent.title }}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div class="flex flex-wrap items-center gap-6 text-sm text-gray-600">
+                <span class="flex items-center gap-1">👤 {{ featuredLiveEvent.organizer }}</span>
+                <span class="flex items-center gap-1">👥 {{ featuredLiveEvent.attendeeCount || 0 }} watching</span>
+                <span class="flex items-center gap-1">📺 {{ getEventTypeLabel(featuredLiveEvent.type) }}</span>
+              </div>
+              
+              <!-- Owner Controls -->
+              <div v-if="isEventOwner(featuredLiveEvent)" class="flex gap-3">
+                <button 
+                  @click.stop="endEvent(featuredLiveEvent.id)"
+                  class="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                >
+                  🛑 End Stream
+                </button>
+                <button 
+                  @click.stop="editEvent(featuredLiveEvent.id)"
+                  class="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  ✏️ Edit
+                </button>
+              </div>
+              <!-- Click to join hint for viewers -->
+              <div v-else class="text-sm text-gray-500 italic">
+                👆 Click anywhere to join the stream
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -37,7 +85,21 @@
         </div>
         <div v-else class="text-center py-12">
           <div class="text-gray-400 text-lg">No live events right now</div>
-          <p class="text-gray-500 mt-2">Check back soon or create your own event!</p>
+          <p class="text-gray-500 mt-2 mb-4">Be the first to go live and start building community!</p>
+          <NuxtLink 
+            v-if="isAuthenticated"
+            to="/go-live" 
+            class="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+          >
+            🔴 Go Live Now
+          </NuxtLink>
+          <NuxtLink 
+            v-else
+            to="/auth/login"
+            class="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          >
+            Join to Go Live
+          </NuxtLink>
         </div>
       </div>
     </section>
@@ -62,43 +124,56 @@
       </div>
     </section>
 
-    <!-- Community Stats -->
-    <section class="py-16 bg-blue-600 text-white">
+    <!-- Recent Past Events Section -->
+    <section class="py-16 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div>
-            <div class="text-4xl font-bold mb-2">{{ totalEvents }}</div>
-            <div class="text-blue-100">Total Events</div>
-          </div>
-          <div>
-            <div class="text-4xl font-bold mb-2">{{ totalMembers }}</div>
-            <div class="text-blue-100">Community Members</div>
-          </div>
-          <div>
-            <div class="text-4xl font-bold mb-2">{{ totalStories }}</div>
-            <div class="text-blue-100">Stories Shared</div>
-          </div>
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-bold text-gray-900">📺 Recent Past Events</h2>
+          <NuxtLink to="/events?filter=past" class="text-blue-600 hover:text-blue-700 font-medium">
+            View All Past Events →
+          </NuxtLink>
+        </div>
+        
+        <div v-if="pastEvents.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <EventCard v-for="event in pastEvents" :key="event.id" :event="event" />
+        </div>
+        <div v-else class="text-center py-12">
+          <div class="text-gray-400 text-lg">No past events yet</div>
+          <p class="text-gray-500 mt-2">Check back later to see recorded content!</p>
         </div>
       </div>
     </section>
 
-    <!-- Recent Stories -->
-    <section class="py-16 bg-white">
+    <!-- Popular Past Events Section -->
+    <section class="py-16 bg-gradient-to-br from-purple-50 to-blue-50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">
-          Community Stories
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="i in 3" :key="i" class="bg-gray-50 rounded-lg p-6">
-            <h3 class="font-semibold mb-2">Story Title {{ i }}</h3>
-            <p class="text-gray-600 text-sm mb-4">
-              A brief preview of someone's story about making Slovakia better...
-            </p>
-            <div class="text-blue-600 text-sm font-medium">Read more →</div>
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h2 class="text-3xl font-bold text-gray-900">🎆 Audience Favorites</h2>
+            <p class="text-gray-600 mt-2">Most watched events - discover what the community loved</p>
           </div>
+          <NuxtLink to="/events?filter=popular" class="text-purple-600 hover:text-purple-700 font-medium">
+            View All Popular →
+          </NuxtLink>
+        </div>
+        
+        <div v-if="popularEvents.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div v-for="(event, index) in popularEvents" :key="event.id" class="relative">
+            <!-- Popularity rank badge -->
+            <div class="absolute -top-2 -left-2 z-10 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg">
+              {{ index + 1 }}
+            </div>
+            <EventCard :event="event" />
+          </div>
+        </div>
+        <div v-else class="text-center py-12">
+          <div class="text-gray-400 text-lg">No popular events yet</div>
+          <p class="text-gray-500 mt-2">Create engaging content to appear here!</p>
         </div>
       </div>
     </section>
+
+
   </div>
 </template>
 
@@ -113,39 +188,94 @@ useHead({
   ]
 })
 
+// Auth state
+const { isAuthenticated, user } = useAuth()
+
+// Stream monitoring
+const { startMonitoring } = useStreamMonitor()
+let stopMonitoring: (() => void) | null = null
+
 // Reactive data
 const liveEvents = ref<Event[]>([])
 const upcomingEvents = ref<Event[]>([])
-const totalEvents = ref(0)
-const totalMembers = ref(0)
-const totalStories = ref(0)
+const pastEvents = ref<Event[]>([])
+const popularEvents = ref<Event[]>([])
 
-// Load data on mount
-onMounted(async () => {
+// Computed properties
+const featuredLiveEvent = computed(() => {
+  return liveEvents.value.find(event => event.isEmbeddable && event.embedUrl) || liveEvents.value[0]
+})
+
+// Helper functions
+const getEventTypeLabel = (type: Event['type']): string => {
+  const labels = {
+    youtube: 'YouTube',
+    twitch: 'Twitch',
+    zoom: 'Zoom',
+    meet: 'Google Meet',
+    other: 'External'
+  }
+  return labels[type] || type
+}
+
+const isEventOwner = (event: Event): boolean => {
+  return user.value?.uid === event.organizerId
+}
+
+const endEvent = async (eventId: string) => {
+  if (!confirm('Are you sure you want to end this live stream?')) return
+  
   try {
-    // Load live and upcoming events
-    const { getLiveEvents, getUpcomingEvents, getEvents } = useEvents()
+    const { updateEvent } = useEvents()
+    await updateEvent(eventId, { 
+      status: 'ended',
+      endedAt: new Date()
+    })
     
-    const [live, upcoming, all] = await Promise.all([
+    // Refresh the events data
+    await loadEvents()
+  } catch (error) {
+    console.error('Failed to end event:', error)
+    alert('Failed to end the stream. Please try again.')
+  }
+}
+
+const editEvent = (eventId: string) => {
+  navigateTo(`/events/${eventId}/edit`)
+}
+
+const loadEvents = async () => {
+  try {
+    const { getLiveEvents, getUpcomingEvents, getPastEvents, getPopularPastEvents } = useEvents()
+    
+    const [live, upcoming, past, popular] = await Promise.all([
       getLiveEvents(),
-      getUpcomingEvents(), 
-      getEvents()
+      getUpcomingEvents(),
+      getPastEvents(6),
+      getPopularPastEvents(6)
     ])
     
-    liveEvents.value = live.slice(0, 6) // Show max 6 live events
-    upcomingEvents.value = upcoming.slice(0, 6) // Show max 6 upcoming events
-    
-    // Update stats
-    totalEvents.value = all.length
-    totalMembers.value = Math.max(156, all.length * 5 + Math.floor(Math.random() * 50))
-    totalStories.value = Math.max(89, Math.floor(all.length * 2.5) + Math.floor(Math.random() * 20))
-    
+    liveEvents.value = live.slice(0, 6)
+    upcomingEvents.value = upcoming.slice(0, 6)
+    pastEvents.value = past
+    popularEvents.value = popular
   } catch (error) {
     console.error('Failed to load events:', error)
-    // Fallback to placeholder data
-    totalEvents.value = 42
-    totalMembers.value = 156
-    totalStories.value = 89
+  }
+}
+
+// Load data on mount
+onMounted(() => {
+  loadEvents()
+  
+  // Start stream monitoring
+  stopMonitoring = startMonitoring()
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (stopMonitoring) {
+    stopMonitoring()
   }
 })
 </script>

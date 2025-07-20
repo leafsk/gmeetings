@@ -4,7 +4,7 @@
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-4">Discover Channels</h1>
       <p class="text-gray-600 mb-6">
-        Find and follow amazing content creators in the Slovakia community.
+        Follow currently active streamers and creators with upcoming events.
       </p>
       
       <!-- Search Bar -->
@@ -87,13 +87,21 @@
               </div>
             </div>
 
-            <!-- Live Indicator -->
-            <div 
-              v-if="channel.isLive"
-              class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1"
-            >
-              <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-              LIVE
+            <!-- Status Indicators -->
+            <div class="absolute top-2 right-2 flex flex-col gap-1">
+              <div 
+                v-if="channel.isLive"
+                class="bg-red-500 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1"
+              >
+                <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                LIVE
+              </div>
+              <div 
+                v-else-if="channel.hasUpcomingEvents"
+                class="bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1"
+              >
+                📅 SCHEDULED
+              </div>
             </div>
           </div>
 
@@ -108,10 +116,29 @@
 
             <p 
               v-if="channel.bio" 
-              class="text-sm text-gray-600 mb-4 line-clamp-2"
+              class="text-sm text-gray-600 mb-3 line-clamp-2"
             >
               {{ channel.bio }}
             </p>
+
+            <!-- Categories -->
+            <div v-if="channel.categories && channel.categories.length > 0" class="mb-3">
+              <div class="flex flex-wrap gap-1">
+                <span
+                  v-for="category in channel.categories.slice(0, 3)"
+                  :key="category"
+                  class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium"
+                >
+                  {{ category }}
+                </span>
+                <span
+                  v-if="channel.categories.length > 3"
+                  class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs"
+                >
+                  +{{ channel.categories.length - 3 }}
+                </span>
+              </div>
+            </div>
 
             <!-- Stats -->
             <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
@@ -194,7 +221,7 @@ useHead({
 
 // State
 const searchQuery = ref('')
-const activeFilter = ref('all')
+const activeFilter = ref('active')
 const channels = ref<UserProfile[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -212,10 +239,10 @@ const {
 
 // Filters
 const filters = [
-  { key: 'all', label: 'All Channels' },
+  { key: 'active', label: 'Active Streamers' },
   { key: 'live', label: 'Live Now' },
-  { key: 'popular', label: 'Most Followers' },
-  { key: 'recent', label: 'Recently Joined' }
+  { key: 'scheduled', label: 'Has Upcoming Events' },
+  { key: 'popular', label: 'Most Followers' }
 ]
 
 // Computed
@@ -228,7 +255,8 @@ const filteredChannels = computed(() => {
     filtered = filtered.filter(channel => 
       (channel.channelName || channel.displayName).toLowerCase().includes(query) ||
       channel.bio?.toLowerCase().includes(query) ||
-      channel.displayName.toLowerCase().includes(query)
+      channel.displayName.toLowerCase().includes(query) ||
+      channel.categories?.some(cat => cat.toLowerCase().includes(query))
     )
   }
 
@@ -237,13 +265,20 @@ const filteredChannels = computed(() => {
     case 'live':
       filtered = filtered.filter(channel => channel.isLive)
       break
+    case 'scheduled':
+      filtered = filtered.filter(channel => channel.hasUpcomingEvents)
+      break
     case 'popular':
       filtered = filtered.sort((a, b) => b.followerCount - a.followerCount)
       break
-    case 'recent':
-      filtered = filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      break
+    case 'active':
     default:
+      // Show only users who are live or have streamed recently or have upcoming events
+      filtered = filtered.filter(channel => 
+        channel.isLive || 
+        channel.hasUpcomingEvents ||
+        (channel.lastLiveAt && isRecentlyActive(channel.lastLiveAt))
+      )
       // Sort by live status first, then by follower count
       filtered = filtered.sort((a, b) => {
         if (a.isLive && !b.isLive) return -1
@@ -268,12 +303,23 @@ const loadChannels = async () => {
     const usersSnapshot = await getDocs(collection(nuxtApp.$db, 'users'))
     const channelList: UserProfile[] = []
 
+    // Get events to check for upcoming events per user
+    const eventsSnapshot = await getDocs(collection(nuxtApp.$db, 'events'))
+    const upcomingEventsByUser = new Map<string, boolean>()
+    
+    eventsSnapshot.forEach((doc) => {
+      const eventData = doc.data()
+      const eventDate = eventData.scheduledAt?.toDate()
+      if (eventDate && eventDate > new Date()) {
+        upcomingEventsByUser.set(eventData.organizerId, true)
+      }
+    })
+
     usersSnapshot.forEach((doc) => {
       const userData = doc.data()
       const userId = doc.id
 
-      // Skip current user
-      if (userId === user.value?.uid) return
+      
 
       channelList.push({
         id: userId,
@@ -290,6 +336,7 @@ const loadChannels = async () => {
         followingCount: userData.followingCount || 0,
         isLive: userData.isLive || false,
         lastLiveAt: userData.lastLiveAt?.toDate(),
+        hasUpcomingEvents: upcomingEventsByUser.get(userId) || false,
         createdAt: userData.createdAt?.toDate() || new Date(),
         updatedAt: userData.updatedAt?.toDate() || new Date()
       })
@@ -370,6 +417,13 @@ const getLastSeenText = (lastLiveAt?: Date): string => {
   } else {
     return 'Recently'
   }
+}
+
+const isRecentlyActive = (lastLiveAt: Date): boolean => {
+  const now = new Date()
+  const diffMs = now.getTime() - lastLiveAt.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  return diffDays <= 7 // Consider active if streamed within last 7 days
 }
 
 // Utility function for debouncing

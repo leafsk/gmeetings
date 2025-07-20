@@ -9,6 +9,8 @@ export interface Event {
   type: 'youtube' | 'twitch' | 'zoom' | 'meet' | 'other'
   streamUrl?: string
   embedUrl?: string
+  replayUrl?: string
+  replayEmbedUrl?: string
   stageUrl?: string
   externalLink?: string
   participantLink?: string
@@ -21,6 +23,7 @@ export interface Event {
   participantCount?: number
   maxAttendees?: number
   maxParticipants?: number
+  endedAt?: Date
   createdAt: Date
   updatedAt: Date
 }
@@ -33,6 +36,7 @@ export interface CreateEventData {
   category: Event['category']
   type: Event['type']
   streamUrl?: string
+  replayUrl?: string
   stageUrl?: string
   externalLink?: string
   participantLink?: string

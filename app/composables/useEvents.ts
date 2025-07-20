@@ -42,15 +42,10 @@ export const useEvents = () => {
     return new Date() // Fallback to current date
   }
 
-  // Compute event status
-  const getEventStatus = (startDate: Date, endDate: Date): 'live' | 'upcoming' | 'ended' => {
-    const now = new Date()
-    if (now < startDate) {
-      return 'upcoming'
-    }
-    if (now > endDate) {
-      return 'ended'
-    }
+  // Simple time-based status computation (avoiding circular dependency)
+  const getTimeBasedStatus = (startDate: Date, endDate: Date, now: Date): Event['status'] => {
+    if (now < startDate) return 'upcoming'
+    if (now > endDate) return 'ended'
     return 'live'
   }
 
@@ -58,17 +53,34 @@ export const useEvents = () => {
   const convertEventData = (id: string, data: any): Event => {
     const startDate = convertTimestamp(data.startDate)
     const endDate = convertTimestamp(data.endDate)
+    const endedAt = data.endedAt ? convertTimestamp(data.endedAt) : undefined
+    
+    // Compute status with proper respect for manually ended events
+    let computedStatus: Event['status']
+    if (data.status === 'adhoc') {
+      computedStatus = 'adhoc'
+    } else if (endedAt) {
+      // If manually ended, always show as ended regardless of time
+      computedStatus = 'ended'
+    } else {
+      // Otherwise use time-based computation
+      computedStatus = getTimeBasedStatus(startDate, endDate, new Date())
+    }
+    
     return {
       id,
       title: data.title,
       description: data.description,
       startDate,
       endDate,
-      status: data.status === 'adhoc' ? 'adhoc' : getEventStatus(startDate, endDate),
+      status: computedStatus,
       category: data.category || 'internal',
       type: data.type,
       streamUrl: data.streamUrl,
       embedUrl: data.embedUrl,
+      replayUrl: data.replayUrl,
+      replayEmbedUrl: data.replayEmbedUrl || generateEmbedUrl(data.type, data.replayUrl),
+      stageUrl: data.stageUrl,
       externalLink: data.externalLink,
       participantLink: data.participantLink,
       isEmbeddable: data.isEmbeddable,
@@ -80,6 +92,7 @@ export const useEvents = () => {
       participantCount: data.participantCount || 0,
       maxAttendees: data.maxAttendees,
       maxParticipants: data.maxParticipants,
+      endedAt: data.endedAt ? convertTimestamp(data.endedAt) : undefined,
       createdAt: convertTimestamp(data.createdAt),
       updatedAt: convertTimestamp(data.updatedAt)
     }
@@ -152,10 +165,7 @@ export const useEvents = () => {
       
       let q = query(collection(nuxtApp.$db, 'events'), orderBy('startDate', 'asc'))
 
-      if (filter?.status) {
-        q = query(q, where('status', '==', filter.status))
-      }
-
+      // Only filter by type, never by status since status is computed
       if (filter?.type) {
         q = query(q, where('type', '==', filter.type))
       }
@@ -164,7 +174,12 @@ export const useEvents = () => {
       const eventList: Event[] = []
 
       querySnapshot.forEach((doc) => {
-        eventList.push(convertEventData(doc.id, doc.data()))
+        const event = convertEventData(doc.id, doc.data())
+        
+        // Apply status filter after computation
+        if (!filter?.status || event.status === filter.status) {
+          eventList.push(event)
+        }
       })
 
       events.value = eventList
@@ -185,6 +200,65 @@ export const useEvents = () => {
   // Get upcoming events
   const getUpcomingEvents = async (): Promise<Event[]> => {
     return getEvents({ status: 'upcoming' })
+  }
+
+  // Get past events
+  const getPastEvents = async (limit?: number): Promise<Event[]> => {
+    try {
+      loading.value = true
+      error.value = null
+
+      if (!nuxtApp.$db) throw new Error('Firebase db not initialized')
+      
+      // Get all events and filter for ended ones
+      const q = query(collection(nuxtApp.$db, 'events'), orderBy('endDate', 'desc'))
+      const querySnapshot = await getDocs(q)
+      const eventList: Event[] = []
+
+      querySnapshot.forEach((doc) => {
+        const event = convertEventData(doc.id, doc.data())
+        if (event.status === 'ended') {
+          eventList.push(event)
+        }
+      })
+
+      const result = limit ? eventList.slice(0, limit) : eventList
+      return result
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Get most popular past events (by attendee count)
+  const getPopularPastEvents = async (limit: number = 6): Promise<Event[]> => {
+    try {
+      loading.value = true
+      error.value = null
+
+      if (!nuxtApp.$db) throw new Error('Firebase db not initialized')
+      
+      // Get all events and filter for ended ones with high attendance
+      const q = query(collection(nuxtApp.$db, 'events'), orderBy('attendeeCount', 'desc'))
+      const querySnapshot = await getDocs(q)
+      const eventList: Event[] = []
+
+      querySnapshot.forEach((doc) => {
+        const event = convertEventData(doc.id, doc.data())
+        if (event.status === 'ended' && event.attendeeCount > 0) {
+          eventList.push(event)
+        }
+      })
+
+      return eventList.slice(0, limit)
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
   }
 
   // Get single event by ID
@@ -231,6 +305,9 @@ export const useEvents = () => {
       if (updates.endDate) {
         updateData.endDate = Timestamp.fromDate(updates.endDate)
       }
+      if (updates.endedAt) {
+        updateData.endedAt = Timestamp.fromDate(updates.endedAt)
+      }
 
       await updateDoc(docRef, updateData)
     } catch (err: any) {
@@ -268,14 +345,20 @@ export const useEvents = () => {
 
     let q = query(collection(nuxtApp.$db, 'events'), orderBy('startDate', 'asc'))
 
-    if (filter?.status) {
-      q = query(q, where('status', '==', filter.status))
+    // Only filter by type in database, status is computed
+    if (filter?.type) {
+      q = query(q, where('type', '==', filter.type))
     }
 
     return onSnapshot(q, (querySnapshot) => {
       const eventList: Event[] = []
       querySnapshot.forEach((doc) => {
-        eventList.push(convertEventData(doc.id, doc.data()))
+        const event = convertEventData(doc.id, doc.data())
+        
+        // Apply status filter after computation
+        if (!filter?.status || event.status === filter.status) {
+          eventList.push(event)
+        }
       })
       events.value = eventList
     })
@@ -329,6 +412,8 @@ export const useEvents = () => {
     getEvents,
     getLiveEvents,
     getUpcomingEvents,
+    getPastEvents,
+    getPopularPastEvents,
     getEvent,
     updateEvent,
     deleteEvent,
