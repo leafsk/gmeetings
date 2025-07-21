@@ -192,8 +192,7 @@ useHead({
 const { isAuthenticated, user } = useAuth()
 
 // Stream monitoring
-const { startMonitoring } = useStreamMonitor()
-let stopMonitoring: (() => void) | null = null
+// Stream monitoring is now handled by server-side Firebase Functions
 
 // Reactive data
 const liveEvents = ref<Event[]>([])
@@ -268,14 +267,7 @@ const loadEvents = async () => {
 onMounted(() => {
   loadEvents()
   
-  // Start stream monitoring
-  stopMonitoring = startMonitoring()
-})
-
-// Cleanup on unmount
-onUnmounted(() => {
-  if (stopMonitoring) {
-    stopMonitoring()
-  }
+  // Note: Stream monitoring is now handled by server-side Firebase Functions
+  // Client-side monitoring removed to prevent conflicts and false positives
 })
 </script>

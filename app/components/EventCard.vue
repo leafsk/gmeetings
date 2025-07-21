@@ -110,8 +110,10 @@ async function loadThumbnail() {
       return
     }
     
-    if (props.event.type === 'youtube' && props.event.streamUrl) {
-      const videoId = extractYouTubeVideoId(props.event.streamUrl)
+    const url = props.event.streamUrl || props.event.externalLink || ''
+    
+    if (props.event.type === 'youtube' && url) {
+      const videoId = extractYouTubeVideoId(url)
       if (videoId) {
         const response = await $fetch('/api/thumbnail', {
           query: { platform: 'youtube', videoId }
@@ -121,11 +123,111 @@ async function loadThumbnail() {
       }
     }
     
-    if (props.event.type === 'twitch' && props.event.streamUrl) {
-      const channelName = extractTwitchChannelName(props.event.streamUrl)
+    if (props.event.type === 'twitch' && url) {
+      const channelName = extractTwitchChannelName(url)
       if (channelName) {
         const response = await $fetch('/api/thumbnail', {
           query: { platform: 'twitch', channelName }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    if (props.event.type === 'facebook-live' && url) {
+      const fbInfo = extractFacebookLiveId(url)
+      if (fbInfo) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { 
+            platform: 'facebook-live', 
+            postId: fbInfo.postId, 
+            username: fbInfo.username 
+          }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    if (props.event.type === 'instagram-live' && url) {
+      const username = extractInstagramUsername(url)
+      if (username) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { platform: 'instagram-live', username }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    if (props.event.type === 'tiktok-live' && url) {
+      const username = extractTikTokUsername(url)
+      if (username) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { platform: 'tiktok-live', username }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    if (props.event.type === 'discord' && url) {
+      const discordInfo = extractDiscordInfo(url)
+      if (discordInfo) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { 
+            platform: 'discord', 
+            serverId: discordInfo.serverId,
+            channelId: discordInfo.channelId 
+          }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    if (props.event.type === 'zoom' && url) {
+      const meetingId = extractZoomMeetingId(url)
+      if (meetingId) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { platform: 'zoom', meetingId }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    if (props.event.type === 'teams' && url) {
+      const meetingId = extractTeamsMeetingId(url)
+      if (meetingId) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { platform: 'teams', meetingId }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    if (props.event.type === 'meet' && url) {
+      const meetingId = extractGoogleMeetId(url)
+      if (meetingId) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { platform: 'meet', meetingId }
+        })
+        thumbnailUrl.value = response.thumbnailUrl
+        return
+      }
+    }
+    
+    if (props.event.type === 'webex' && url) {
+      const webexInfo = extractWebExInfo(url)
+      if (webexInfo) {
+        const response = await $fetch('/api/thumbnail', {
+          query: { 
+            platform: 'webex', 
+            meetingId: webexInfo.meetingId,
+            webinarId: webexInfo.webinarId 
+          }
         })
         thumbnailUrl.value = response.thumbnailUrl
         return
@@ -140,23 +242,19 @@ async function loadThumbnail() {
   }
 }
 
-function extractYouTubeVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
-    /youtube\.com\/embed\/([^&\n?#]+)/
-  ]
-  
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match) return match[1]
-  }
-  return null
-}
-
-function extractTwitchChannelName(url: string): string | null {
-  const match = url.match(/twitch\.tv\/(\w+)/)
-  return match ? match[1] : null
-}
+// Import extraction functions from composable
+const { 
+  extractYouTubeVideoId,
+  extractTwitchChannelName,
+  extractFacebookLiveId,
+  extractInstagramUsername,
+  extractTikTokUsername,
+  extractDiscordInfo,
+  extractZoomMeetingId,
+  extractTeamsMeetingId,
+  extractGoogleMeetId,
+  extractWebExInfo
+} = useEventStatus()
 
 function generateFallbackImage(): string {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(props.event.title)}&background=3b82f6&color=fff&size=640x360&format=png`
@@ -177,8 +275,14 @@ function getEventTypeLabel(type: Event['type']): string {
   const labels = {
     youtube: 'YouTube',
     twitch: 'Twitch',
+    'facebook-live': 'Facebook Live',
+    'instagram-live': 'Instagram Live',
+    'tiktok-live': 'TikTok Live',
+    discord: 'Discord',
     zoom: 'Zoom',
-    meet: 'Meet',
+    teams: 'Teams',
+    meet: 'Google Meet',
+    webex: 'WebEx',
     other: 'Other'
   }
   return labels[type] || type

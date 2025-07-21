@@ -26,7 +26,9 @@ export const useChat = () => {
         if (event.streamUrl.includes('twitch.tv')) {
           const channel = event.streamUrl.match(/twitch\.tv\/(\w+)/)?.[1]
           if (channel) {
-            return `https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}`
+            // Get proper parent domain for Twitch embedding
+            const parentDomain = process.client ? window.location.hostname : 'localhost'
+            return `https://www.twitch.tv/embed/${channel}/chat?parent=${parentDomain}&darkpopout`
           }
         }
         break

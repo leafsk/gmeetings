@@ -16,8 +16,9 @@
         <slot />
       </main>
       
-      <!-- Right Chat Sidebar -->
+      <!-- Right Chat Sidebar - only show on event pages -->
       <ChatSidebar 
+        v-if="isEventPage && showChatSidebar"
         :show="showChatSidebar"
         :chat-embed-url="chatEmbedUrl"
         :chat-type="chatType"
@@ -29,7 +30,7 @@
       
       <!-- Chat Toggle Button (when hidden) - positioned over content -->
       <button 
-        v-if="!showChatSidebar" 
+        v-if="isEventPage && !showChatSidebar && currentEventId" 
         @click="toggleChat"
         class="hidden lg:block fixed right-4 top-20 bg-white border border-gray-200 rounded-lg p-3 shadow-lg hover:bg-gray-50 transition-colors z-30"
         title="Show chat"
@@ -46,11 +47,26 @@
 // Authentication state
 const { isAuthenticated } = useAuth()
 
+// Router state
+const route = useRoute()
+
+// Check if we're on an event page
+const isEventPage = computed(() => {
+  return route.path.startsWith('/events/') && route.params.id
+})
+
 // Chat sidebar state
 const { showChatSidebar, chatEmbedUrl, chatType, viewerCount, currentEventId, closeChat, toggleChat } = useChat()
 
 // Left sidebar state
 const leftSidebarCollapsed = ref(false)
+
+// Close chat when navigating away from event pages
+watch(isEventPage, (newValue) => {
+  if (!newValue) {
+    closeChat()
+  }
+})
 
 // Methods
 const toggleLeftSidebar = () => {

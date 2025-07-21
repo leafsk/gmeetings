@@ -27,6 +27,9 @@
       </div>
     </div>
 
+    <!-- Supported Platforms Info -->
+    <SupportedPlatforms class="mb-8" />
+
     <!-- Existing Live Stream Warning -->
     <div v-if="showExistingLiveWarning && userLiveEvent" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
       <div class="flex items-center gap-3 mb-4">

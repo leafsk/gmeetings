@@ -6,6 +6,11 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'static'
   },
+  routeRules: {
+    // Serve service worker dynamically from API to avoid hardcoded credentials
+    '/firebase-messaging-sw.js': { redirect: '/api/firebase-messaging-sw.js' },
+    '/sw.js': { headers: { 'Content-Type': 'application/javascript' } }
+  },
   runtimeConfig: {
     public: {
       firebase: {

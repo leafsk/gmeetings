@@ -14,14 +14,43 @@
     <div v-if="event.status === 'live'">
       <!-- Top Event Info Banner -->
       <div class="bg-white p-6 rounded-lg border border-gray-200 mb-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center gap-3 mb-2">
-          <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
-            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-            LIVE
-          </span>
-          <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">
-            {{ getEventTypeLabel(event.type) }}
-          </span>
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-3">
+            <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
+              <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              LIVE
+            </span>
+            <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">
+              {{ getEventTypeLabel(event.type) }}
+            </span>
+          </div>
+          
+          <!-- Event Owner Controls (for event owners) -->
+          <div v-if="isEventOwner" class="flex items-center gap-2">
+            <!-- Manual Override Toggle -->
+            <button
+              @click="toggleManualOverride"
+              :disabled="streamControlLoading"
+              :class="[
+                'px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-2',
+                event.manualOverride 
+                  ? 'bg-yellow-600 text-white hover:bg-yellow-700' 
+                  : 'bg-gray-600 text-white hover:bg-gray-700'
+              ]"
+              :title="event.manualOverride ? 'Manual override enabled - auto-ending disabled' : 'Enable manual override to prevent auto-ending'"
+            >
+              {{ event.manualOverride ? '🔒 Protected' : '🔓 Auto-End' }}
+            </button>
+
+            <!-- End Event Button -->
+            <button
+              @click="endEvent"
+              :disabled="endingEvent"
+              class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {{ endingEvent ? 'Ending...' : '🛑 End Event' }}
+            </button>
+          </div>
         </div>
         <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
           {{ event.title }}
@@ -32,51 +61,13 @@
         <p class="text-gray-600 text-sm">
           Organized by <span class="font-medium">{{ event.organizer }}</span>
         </p>
-        
-        <!-- Owner Controls -->
-        <div v-if="isEventOwner" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 class="font-medium text-blue-900 mb-3">{{ event.status === 'live' ? 'Stream Owner Controls' : 'Event Owner Controls' }}</h3>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-if="event.status === 'live'"
-              @click="checkStreamStatusManually"
-              :disabled="streamStatusChecking"
-              class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              {{ streamStatusChecking ? 'Checking...' : '🔍 Check Stream Status' }}
-            </button>
-            <button
-              v-if="event.status === 'live'"
-              @click="endEvent"
-              :disabled="endingEvent"
-              class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
-            >
-              {{ endingEvent ? 'Ending...' : '🛑 End Event' }}
-            </button>
-            <button
-              v-if="event.status === 'ended' && !event.replayUrl"
-              @click="showAddReplayModal = true"
-              class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition-colors"
-            >
-              🔄 Add Replay Link
-            </button>
-            <NuxtLink
-              :to="`/events/${event.id}/edit`"
-              class="border border-blue-300 text-blue-700 px-4 py-2 rounded-lg text-sm hover:bg-blue-100 transition-colors"
-            >
-              ✏️ Edit Event
-            </NuxtLink>
-          </div>
-          <p v-if="lastStreamCheck" class="text-xs text-blue-600 mt-2">
-            Last checked: {{ lastStreamCheck.toLocaleTimeString() }}
-          </p>
-        </div>
       </div>
 
-      <!-- Main Content Area (Video + Chat) -->
-      <div class="flex flex-col lg:flex-row relative">
+
+      <!-- Main Content Area -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Video Player -->
-        <div class="w-full px-4 sm:px-6 lg:px-8">
+        <div class="flex-1">
           <div class="aspect-w-16 aspect-h-9 bg-gray-200 rounded-lg overflow-hidden w-full h-[60vh]">
             <iframe
               v-if="event.embedUrl"
@@ -92,7 +83,7 @@
           </div>
 
           <!-- Action Buttons for Live -->
-          <div class="mt-6 max-w-7xl mx-auto">
+          <div class="mt-6">
             <a 
               v-if="event.stageUrl"
               :href="event.stageUrl"
@@ -118,7 +109,7 @@
           </div>
 
           <!-- Channel Description Section -->
-          <div class="mt-8 max-w-7xl mx-auto">
+          <div class="mt-8">
             <div class="bg-white border border-gray-200 rounded-lg p-6">
               <div class="flex items-start gap-4">
                 <img 
@@ -194,23 +185,34 @@
         <div class="lg:col-span-2">
           <!-- Event Header -->
           <div class="mb-6">
-            <div class="flex items-center gap-3 mb-4">
-              <span v-if="event.status === 'upcoming'" class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                Upcoming
-              </span>
-              <span v-else-if="event.status === 'ended'" class="bg-gray-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                Ended
-              </span>
-              <span v-if="event.status === 'ended' && event.replayUrl" class="bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                Replay Available
-              </span>
-              <span v-else-if="event.status === 'adhoc'" class="bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                Ad-hoc
-              </span>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <span v-if="event.status === 'upcoming'" class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                  Upcoming
+                </span>
+                <span v-else-if="event.status === 'ended'" class="bg-gray-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                  Ended
+                </span>
+                <span v-if="event.status === 'ended' && event.replayUrl" class="bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                  Replay Available
+                </span>
+                <span v-else-if="event.status === 'adhoc'" class="bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                  Ad-hoc
+                </span>
+                
+                <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">
+                  {{ getEventTypeLabel(event.type) }}
+                </span>
+              </div>
               
-              <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">
-                {{ getEventTypeLabel(event.type) }}
-              </span>
+              <!-- Add Replay Link Button (for event owners of ended events without replay) -->
+              <button
+                v-if="isEventOwner && event.status === 'ended' && !event.replayUrl"
+                @click="showAddReplayModal = true"
+                class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition-colors flex items-center gap-2"
+              >
+                🔄 Add Replay Link
+              </button>
             </div>
             
             <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -487,11 +489,9 @@ const organizerProfile = ref(null)
 // Composables
 const { getEvent, updateEvent } = useEvents()
 const { user } = useAuth()
-const { checkEventStatus, checkStreamStatus } = useStreamMonitor()
+const { enableManualOverride, disableManualOverride, forceEndEvent, loading: streamControlLoading } = useStreamControl()
 
-// Stream monitoring state
-const streamStatusChecking = ref(false)
-const lastStreamCheck = ref<Date | null>(null)
+// Event management state
 const endingEvent = ref(false)
 const showEndEventModal = ref(false)
 const showAddReplayModal = ref(false)
@@ -538,8 +538,14 @@ const getEventTypeLabel = (type: Event['type']): string => {
   const labels = {
     youtube: 'YouTube Live',
     twitch: 'Twitch',
+    'facebook-live': 'Facebook Live',
+    'instagram-live': 'Instagram Live',
+    'tiktok-live': 'TikTok Live',
+    discord: 'Discord',
     zoom: 'Zoom Meeting',
+    teams: 'Microsoft Teams',
     meet: 'Google Meet',
+    webex: 'WebEx',
     other: 'External'
   }
   return labels[type] || type
@@ -569,6 +575,25 @@ const getAutoplayEmbedUrl = (embedUrl: string): string => {
   }
 }
 
+// Manual override functions
+const toggleManualOverride = async () => {
+  if (!event.value || !user.value) return
+  
+  try {
+    const currentOverride = event.value.manualOverride || false
+    const success = currentOverride 
+      ? await disableManualOverride(event.value.id)
+      : await enableManualOverride(event.value.id)
+    
+    if (success) {
+      // Update local state
+      event.value.manualOverride = !currentOverride
+    }
+  } catch (error) {
+    console.error('Failed to toggle manual override:', error)
+  }
+}
+
 // End event functions
 const endEvent = () => {
   if (!event.value || !user.value) return
@@ -581,16 +606,23 @@ const confirmEndEvent = async () => {
   try {
     endingEvent.value = true
     
-    // Update event status to ended
-    await updateEvent(event.value.id, {
-      status: 'ended',
-      endedAt: new Date()
-    })
+    // Use the new server-side force end function
+    const success = await forceEndEvent(event.value.id, 'Manually ended by organizer')
     
-    // Reload the event to show updated status
-    await loadEvent()
-    
-    showEndEventModal.value = false
+    if (success) {
+      // Reload the event to show updated status
+      await loadEvent()
+      showEndEventModal.value = false
+    } else {
+      console.error('Failed to end event via server function')
+      // Fallback to client-side update
+      await updateEvent(event.value.id, {
+        status: 'ended',
+        endedAt: new Date()
+      })
+      await loadEvent()
+      showEndEventModal.value = false
+    }
   } catch (error) {
     console.error('Failed to end event:', error)
     // You could add a toast notification here instead of alert
@@ -626,40 +658,18 @@ const isEventOwner = computed(() => {
   return event.value && user.value && event.value.organizerId === user.value.uid
 })
 
-// Manual stream status check for owners
-const checkStreamStatusManually = async () => {
-  if (!event.value || !event.value.streamUrl) return
-  
-  try {
-    streamStatusChecking.value = true
-    lastStreamCheck.value = new Date()
-    
-    const status = await checkStreamStatus(event.value.streamUrl, event.value.type)
-    
-    if (!status.isLive && status.isValid !== false) {
-      const shouldEnd = confirm(
-        'Your stream appears to be offline. Would you like to end this event?'
-      )
-      
-      if (shouldEnd) {
-        const wasEnded = await checkEventStatus(event.value.id)
-        if (wasEnded) {
-          // Reload the event to show updated status
-          await loadEvent()
-        }
-      }
-    } else if (status.isLive) {
-      alert('Your stream is still live and running!')
-    } else {
-      alert('Could not verify stream status. Please check your stream manually.')
-    }
-  } catch (error) {
-    console.error('Failed to check stream status:', error)
-    alert('Failed to check stream status. Please try again.')
-  } finally {
-    streamStatusChecking.value = false
+// Chat functionality 
+const { openChatForEvent, closeChat } = useChat()
+
+// Open chat when event is live and suitable for chat
+const initializeChat = () => {
+  if (event.value && event.value.status === 'live' && (event.value.type === 'twitch' || event.value.type === 'youtube')) {
+    openChatForEvent(event.value)
+  } else {
+    closeChat()
   }
 }
+
 
 // Load organizer profile
 const loadOrganizerProfile = async (organizerId: string) => {
@@ -733,13 +743,17 @@ const loadEvent = async () => {
       event.value = eventData
       // Load organizer profile
       await loadOrganizerProfile(eventData.organizerId)
+      // Initialize chat for live events
+      initializeChat()
     } else {
       console.error('Event not found:', eventId)
       event.value = null
+      closeChat()
     }
   } catch (error) {
     console.error('Failed to load event:', error)
     event.value = null
+    closeChat()
   } finally {
     loading.value = false
   }
@@ -757,6 +771,11 @@ watch(() => route.params.id, (newId) => {
   if (newId && newId !== eventId) {
     loadEvent()
   }
+})
+
+// Cleanup when leaving the page
+onBeforeUnmount(() => {
+  closeChat()
 })
 
 </script>

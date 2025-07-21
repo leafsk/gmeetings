@@ -8,6 +8,9 @@
       </p>
     </div>
 
+    <!-- Supported Platforms -->
+    <SupportedPlatforms :initially-collapsed="false" class="mb-8" />
+
     <!-- Quick Overview -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
       <h2 class="text-xl font-semibold text-blue-900 mb-3">🎯 Quick Decision Guide</h2>
@@ -89,8 +92,58 @@
           </div>
           <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
             <p class="text-sm text-yellow-800">
-              <strong>Note:</strong> Twitch embeds work best for gaming content and interactive streams.
+              <strong>Note:</strong> Twitch embeds work best for gaming content and interactive streams with live chat integration.
             </p>
+          </div>
+        </div>
+
+        <!-- Social Media Platforms -->
+        <div class="border-l-4 border-blue-500 pl-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-3">📱 Social Media Live Streaming</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Facebook Live -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="font-medium text-blue-700 mb-2">📘 Facebook Live</h4>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li>• Best for community content</li>
+                <li>• Public streams embed well</li>
+                <li>• Built-in audience from Facebook</li>
+                <li>• Auto-saves to timeline</li>
+              </ul>
+            </div>
+            
+            <!-- Instagram Live -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="font-medium text-pink-700 mb-2">📷 Instagram Live</h4>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li>• Mobile-first, casual content</li>
+                <li>• Limited embedding capabilities</li>
+                <li>• Great for behind-the-scenes</li>
+                <li>• Stories integration</li>
+              </ul>
+            </div>
+            
+            <!-- TikTok Live -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="font-medium text-gray-700 mb-2">🎵 TikTok Live</h4>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li>• Short-form, creative content</li>
+                <li>• Younger audience engagement</li>
+                <li>• Basic embedding support</li>
+                <li>• Interactive features</li>
+              </ul>
+            </div>
+            
+            <!-- Discord -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="font-medium text-indigo-700 mb-2">💬 Discord Events</h4>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li>• Community-focused events</li>
+                <li>• Voice chat integration</li>
+                <li>• Server-based audiences</li>
+                <li>• Great for gaming communities</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
@@ -174,17 +227,42 @@
           </div>
         </div>
 
-        <!-- Google Meet + YouTube -->
+        <!-- Enterprise Meeting Platforms -->
         <div class="border-l-4 border-green-500 pl-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-3">📞 Google Meet + YouTube</h3>
-          <div class="bg-gray-50 p-4 rounded-lg mb-4">
-            <h4 class="font-medium mb-2">Same concept as Zoom, with Google Meet:</h4>
-            <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
-              <li>Create Google Meet for participants</li>
-              <li>Use YouTube Live to broadcast the meeting</li>
-              <li>Meet has built-in recording and live streaming options</li>
-              <li>Great integration with Google Workspace</li>
-            </ul>
+          <h3 class="text-lg font-semibold text-gray-900 mb-3">🏢 Enterprise Meeting Platforms</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Google Meet -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="font-medium text-green-700 mb-2">📞 Google Meet</h4>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li>• Easy Google Workspace integration</li>
+                <li>• Built-in recording to Google Drive</li>
+                <li>• Can stream to YouTube Live</li>
+                <li>• Up to 250 participants</li>
+              </ul>
+            </div>
+            
+            <!-- Microsoft Teams -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="font-medium text-purple-700 mb-2">🟪 Microsoft Teams</h4>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li>• Native live events feature</li>
+                <li>• Up to 1000+ attendees</li>
+                <li>• Enterprise-grade security</li>
+                <li>• Built-in streaming capabilities</li>
+              </ul>
+            </div>
+            
+            <!-- WebEx -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="font-medium text-cyan-700 mb-2">🔷 WebEx</h4>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li>• Professional webinar features</li>
+                <li>• Up to 1000+ participants</li>
+                <li>• Advanced moderation tools</li>
+                <li>• Native streaming support</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -220,6 +298,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
+            <!-- Streaming Platforms -->
             <tr>
               <td class="p-3 font-medium">YouTube Live</td>
               <td class="p-3">Large audiences, one-way content</td>
@@ -229,24 +308,67 @@
             </tr>
             <tr>
               <td class="p-3 font-medium">Twitch</td>
-              <td class="p-3">Gaming, interactive content</td>
+              <td class="p-3">Gaming, interactive content + chat</td>
               <td class="p-3">Unlimited viewers</td>
               <td class="p-3">✅ Native</td>
               <td class="p-3">✅ VODs</td>
             </tr>
             <tr>
+              <td class="p-3 font-medium">Facebook Live</td>
+              <td class="p-3">Social content, public streams</td>
+              <td class="p-3">Unlimited viewers</td>
+              <td class="p-3">✅ Native</td>
+              <td class="p-3">✅ Auto-save</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-medium">Instagram Live</td>
+              <td class="p-3">Casual, mobile-first content</td>
+              <td class="p-3">Unlimited viewers</td>
+              <td class="p-3">⚠️ Limited</td>
+              <td class="p-3">⚠️ Manual save</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-medium">TikTok Live</td>
+              <td class="p-3">Short-form, creative content</td>
+              <td class="p-3">Unlimited viewers</td>
+              <td class="p-3">⚠️ Basic</td>
+              <td class="p-3">❌ Limited</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-medium">Discord</td>
+              <td class="p-3">Community events, voice chats</td>
+              <td class="p-3">Up to 50 voice participants</td>
+              <td class="p-3">⚠️ Manual setup</td>
+              <td class="p-3">⚠️ Bot required</td>
+            </tr>
+            <!-- Meeting Platforms -->
+            <tr class="bg-gray-50">
               <td class="p-3 font-medium">Zoom</td>
               <td class="p-3">Professional meetings</td>
               <td class="p-3">100-1000 (plan dependent)</td>
               <td class="p-3">⚠️ Manual setup</td>
               <td class="p-3">✅ Built-in</td>
             </tr>
-            <tr>
+            <tr class="bg-gray-50">
+              <td class="p-3 font-medium">Microsoft Teams</td>
+              <td class="p-3">Enterprise meetings, live events</td>
+              <td class="p-3">1000+ for live events</td>
+              <td class="p-3">✅ Native live events</td>
+              <td class="p-3">✅ Built-in</td>
+            </tr>
+            <tr class="bg-gray-50">
               <td class="p-3 font-medium">Google Meet</td>
               <td class="p-3">Casual meetings, Google users</td>
               <td class="p-3">100-250 (plan dependent)</td>
               <td class="p-3">⚠️ Manual setup</td>
               <td class="p-3">✅ Google Drive</td>
+            </tr>
+            <tr class="bg-gray-50">
+              <td class="p-3 font-medium">WebEx</td>
+              <td class="p-3">Professional webinars</td>
+              <td class="p-3">1000+ for webinars</td>
+              <td class="p-3">✅ Native streaming</td>
+              <td class="p-3">✅ Built-in</td>
             </tr>
           </tbody>
         </table>

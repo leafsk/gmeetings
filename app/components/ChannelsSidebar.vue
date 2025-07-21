@@ -22,28 +22,62 @@
       <!-- Live Channel Avatars -->
       <div class="space-y-2">
         <NuxtLink
-          v-for="channel in liveChannels"
+          v-for="channel in collapsedChannels"
           :key="channel.id"
-          :to="`/channels/${channel.id}`"
+          :to="channel.id === user?.uid && userLiveEvents.length > 0 ? `/events/${userLiveEvents[0].id}` : `/channels/${channel.id}`"
           class="block relative"
-          :title="`${channel.channelName} - LIVE`"
+          :title="`${channel.channelName} - ${channel.id === user?.uid ? 'MY STREAM' : 'LIVE'}`"
         >
           <img 
             :src="channel.photoURL || '/default-avatar.png'"
             :alt="channel.displayName"
-            class="w-12 h-12 rounded-lg object-cover border-2 border-red-500"
+            :class="[
+              'w-12 h-12 rounded-lg object-cover border-2',
+              channel.id === user?.uid ? 'border-blue-500' : 'border-red-500'
+            ]"
           />
-          <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></div>
+          <div 
+            :class="[
+              'absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full',
+              channel.id === user?.uid ? 'bg-blue-500' : 'bg-red-500'
+            ]"
+          ></div>
         </NuxtLink>
       </div>
     </div>
 
     <!-- Expanded State: Full Sidebar -->
     <div v-else class="p-4">
-      <!-- Followed Channels Section -->
+      <!-- My Stream (if streaming) -->
+      <div v-if="currentUserChannel" class="mb-6">
+        <div class="text-xs text-gray-500 uppercase tracking-wide mb-2">My Stream</div>
+        <NuxtLink
+          :to="userLiveEvents.length > 0 ? `/events/${userLiveEvents[0].id}` : '/dashboard'"
+          class="flex items-center p-2 rounded hover:bg-blue-50 transition-colors group border border-blue-200"
+        >
+          <div class="relative">
+            <img 
+              :src="currentUserChannel.photoURL || '/default-avatar.png'"
+              :alt="currentUserChannel.displayName"
+              class="w-8 h-8 rounded-full object-cover"
+            />
+            <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-blue-500 border-2 border-white rounded-full"></div>
+          </div>
+          <div class="ml-3 flex-1 min-w-0">
+            <div class="text-sm font-medium text-blue-900 truncate">
+              {{ currentUserChannel.channelName }}
+            </div>
+            <div class="text-xs text-blue-600 font-medium">
+              🔵 MY STREAM
+            </div>
+          </div>
+        </NuxtLink>
+      </div>
+
+      <!-- Channels Section -->
       <div class="mb-6">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-900 uppercase tracking-wide">Followed Channels</h3>
+          <h3 class="text-sm font-medium text-gray-900 uppercase tracking-wide">Channels</h3>
           <div class="flex items-center gap-2">
             <button 
               @click="toggleCollapsed"
@@ -71,7 +105,7 @@
         </div>
 
         <div v-if="!collapsed">
-          <!-- Live Channels -->
+          <!-- Live Followed Channels -->
           <div v-if="liveChannels.length > 0" class="mb-4">
             <div class="text-xs text-gray-500 uppercase tracking-wide mb-2">Live Now</div>
             <div class="space-y-1">
@@ -101,9 +135,40 @@
             </div>
           </div>
 
-          <!-- Offline Channels -->
+          <!-- Most Viewed Live Channels -->
+          <div v-if="mostViewedChannels.length > 0" class="mb-4">
+            <div class="text-xs text-gray-500 uppercase tracking-wide mb-2">Most Viewed</div>
+            <div class="space-y-1">
+              <NuxtLink
+                v-for="channel in mostViewedChannels"
+                :key="channel.id"
+                :to="`/channels/${channel.id}`"
+                class="flex items-center p-2 rounded hover:bg-gray-100 transition-colors group"
+              >
+                <div class="relative">
+                  <img 
+                    :src="channel.photoURL || '/default-avatar.png'"
+                    :alt="channel.displayName"
+                    class="w-8 h-8 rounded-full object-cover"
+                  />
+                  <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></div>
+                </div>
+                <div class="ml-3 flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 truncate">
+                    {{ channel.channelName }}
+                  </div>
+                  <div class="text-xs text-gray-600 flex items-center">
+                    <span class="text-red-600 font-medium mr-2">🔴 LIVE</span>
+                    <span>{{ channel.followerCount }} followers</span>
+                  </div>
+                </div>
+              </NuxtLink>
+            </div>
+          </div>
+
+          <!-- Offline Followed Channels -->
           <div v-if="offlineChannels.length > 0">
-            <div class="text-xs text-gray-500 uppercase tracking-wide mb-2">Offline</div>
+            <div class="text-xs text-gray-500 uppercase tracking-wide mb-2">Followed Offline</div>
             <div class="space-y-1">
               <NuxtLink
                 v-for="channel in offlineChannels"
@@ -129,9 +194,9 @@
           </div>
 
           <!-- Empty State -->
-          <div v-if="followedChannels.length === 0" class="text-center py-6">
+          <div v-if="followedChannels.length === 0 && mostViewedChannels.length === 0" class="text-center py-6">
             <div class="text-gray-400 text-3xl mb-2">👥</div>
-            <p class="text-sm text-gray-500 mb-3">No followed channels yet</p>
+            <p class="text-sm text-gray-500 mb-3">No channels to show</p>
             <NuxtLink 
               to="/channels/discover"
               class="text-xs text-blue-600 hover:text-blue-700 font-medium"
@@ -180,9 +245,16 @@ const collapsed = ref(false)
 const isCollapsed = ref(false)
 const { 
   followedChannels, 
+  suggestedChannels,
   loadFollowedChannels, 
+  loadSuggestedChannels,
   subscribeToFollowedChannels 
 } = useFollowing()
+
+const { getLiveEvents } = useEvents()
+
+// Auth state to check if user is streaming
+const { user, userProfile } = useAuth()
 
 // Computed
 const liveChannels = computed(() => 
@@ -192,6 +264,66 @@ const liveChannels = computed(() =>
 const offlineChannels = computed(() => 
   followedChannels.value.filter(channel => !channel.isLive)
 )
+
+// Check if current user has any live events
+const userLiveEvents = ref([])
+
+const checkUserLiveStatus = async () => {
+  if (!user.value) {
+    userLiveEvents.value = []
+    return
+  }
+  
+  try {
+    const liveEvents = await getLiveEvents()
+    userLiveEvents.value = liveEvents.filter(event => event.organizerId === user.value?.uid)
+  } catch (error) {
+    console.error('Failed to check user live events:', error)
+    userLiveEvents.value = []
+  }
+}
+
+// Current user's streaming status
+const currentUserChannel = computed(() => {
+  if (!user.value || userLiveEvents.value.length === 0) return null
+  return {
+    id: user.value.uid,
+    channelName: userProfile.value?.channelName || userProfile.value?.displayName || user.value.displayName || 'My Channel',
+    displayName: userProfile.value?.displayName || user.value.displayName || 'Me',
+    photoURL: userProfile.value?.photoURL || user.value?.photoURL,
+    isLive: true
+  }
+})
+
+// Get most viewed channels (excluding followed and current user)
+const mostViewedChannels = computed(() => {
+  const followedIds = new Set(followedChannels.value.map(c => c.id))
+  return suggestedChannels.value
+    .filter(channel => 
+      !followedIds.has(channel.id) && 
+      channel.id !== user.value?.uid &&
+      channel.isLive
+    )
+    .slice(0, 5) // Show top 5 most viewed live channels
+})
+
+// Channels to display in collapsed mode (avatars only)
+const collapsedChannels = computed(() => {
+  const channels = []
+  
+  // 1. Current user if streaming
+  if (currentUserChannel.value) {
+    channels.push(currentUserChannel.value)
+  }
+  
+  // 2. Followed channels that are live
+  channels.push(...liveChannels.value)
+  
+  // 3. Most viewed live channels
+  channels.push(...mostViewedChannels.value)
+  
+  return channels.slice(0, 8) // Limit to 8 avatars in collapsed mode
+})
 
 // Methods
 const toggleCollapsed = () => {
@@ -225,15 +357,29 @@ const getLastSeenText = (lastLiveAt?: Date): string => {
 
 // Lifecycle
 let unsubscribe: (() => void) | null = null
+let liveCheckInterval: NodeJS.Timeout | null = null
 
 onMounted(() => {
   loadFollowedChannels()
+  loadSuggestedChannels(10) // Load top 10 most followed channels
   unsubscribe = subscribeToFollowedChannels()
+  
+  // Check user live status initially and periodically
+  checkUserLiveStatus()
+  liveCheckInterval = setInterval(checkUserLiveStatus, 30000) // Check every 30 seconds
 })
 
 onUnmounted(() => {
   if (unsubscribe) {
     unsubscribe()
   }
+  if (liveCheckInterval) {
+    clearInterval(liveCheckInterval)
+  }
 })
+
+// Watch for user changes and check live status
+watch(user, () => {
+  checkUserLiveStatus()
+}, { immediate: true })
 </script>

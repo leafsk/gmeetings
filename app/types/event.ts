@@ -6,7 +6,7 @@ export interface Event {
   endDate: Date
   status: 'upcoming' | 'live' | 'ended' | 'adhoc'
   category: 'internal' | 'external'
-  type: 'youtube' | 'twitch' | 'zoom' | 'meet' | 'other'
+  type: 'youtube' | 'twitch' | 'facebook-live' | 'instagram-live' | 'tiktok-live' | 'discord' | 'zoom' | 'teams' | 'meet' | 'webex' | 'other'
   streamUrl?: string
   embedUrl?: string
   replayUrl?: string

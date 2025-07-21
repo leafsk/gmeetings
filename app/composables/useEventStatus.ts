@@ -213,6 +213,87 @@ export const useEventStatus = () => {
     return match ? match[1] : null
   }
 
+  const extractFacebookLiveId = (url: string): { postId?: string, username?: string } | null => {
+    // Facebook Live URLs: facebook.com/{username}/videos/{postId} or facebook.com/{username}/posts/{postId}
+    const videoMatch = url.match(/facebook\.com\/([^\/]+)\/videos\/([^\/\?&]+)/)
+    if (videoMatch) return { username: videoMatch[1], postId: videoMatch[2] }
+    
+    const postMatch = url.match(/facebook\.com\/([^\/]+)\/posts\/([^\/\?&]+)/)
+    if (postMatch) return { username: postMatch[1], postId: postMatch[2] }
+    
+    // Simple profile URL
+    const profileMatch = url.match(/facebook\.com\/([^\/\?&]+)/)
+    if (profileMatch) return { username: profileMatch[1] }
+    
+    return null
+  }
+
+  const extractInstagramUsername = (url: string): string | null => {
+    // Instagram URLs: instagram.com/{username} or instagram.com/{username}/live
+    const match = url.match(/instagram\.com\/([^\/\?&]+)/)
+    return match ? match[1] : null
+  }
+
+  const extractTikTokUsername = (url: string): string | null => {
+    // TikTok URLs: tiktok.com/@{username} or tiktok.com/@{username}/live
+    const match = url.match(/tiktok\.com\/@([^\/\?&]+)/)
+    return match ? match[1] : null
+  }
+
+  const extractDiscordInfo = (url: string): { serverId?: string, channelId?: string } | null => {
+    // Discord invite URLs: discord.gg/{code} or discord.com/invite/{code}
+    const inviteMatch = url.match(/discord\.(?:gg|com\/invite)\/([^\/\?&]+)/)
+    if (inviteMatch) return { serverId: inviteMatch[1] }
+    
+    // Discord channel URLs: discord.com/channels/{serverId}/{channelId}
+    const channelMatch = url.match(/discord\.com\/channels\/([^\/]+)\/([^\/\?&]+)/)
+    if (channelMatch) return { serverId: channelMatch[1], channelId: channelMatch[2] }
+    
+    return null
+  }
+
+  const extractZoomMeetingId = (url: string): string | null => {
+    // Zoom URLs: zoom.us/j/{meetingId} or zoom.us/webinar/register/{meetingId}
+    const patterns = [
+      /zoom\.us\/j\/([^\/\?&]+)/,
+      /zoom\.us\/webinar\/register\/([^\/\?&]+)/,
+      /zoom\.us\/meeting\/([^\/\?&]+)/
+    ]
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern)
+      if (match) return match[1]
+    }
+    return null
+  }
+
+  const extractTeamsMeetingId = (url: string): string | null => {
+    // Teams URLs: teams.microsoft.com/l/meetup-join/{meetingId}
+    const match = url.match(/teams\.microsoft\.com\/l\/meetup-join\/([^\/\?&]+)/)
+    return match ? match[1] : null
+  }
+
+  const extractGoogleMeetId = (url: string): string | null => {
+    // Google Meet URLs: meet.google.com/{meetingId}
+    const match = url.match(/meet\.google\.com\/([^\/\?&]+)/)
+    return match ? match[1] : null
+  }
+
+  const extractWebExInfo = (url: string): { meetingId?: string, webinarId?: string } | null => {
+    // WebEx URLs: {company}.webex.com/meet/{meetingId} or webex.com/webinar/{webinarId}
+    const meetingMatch = url.match(/webex\.com\/meet\/([^\/\?&]+)/)
+    if (meetingMatch) return { meetingId: meetingMatch[1] }
+    
+    const webinarMatch = url.match(/webex\.com\/webinar\/([^\/\?&]+)/)
+    if (webinarMatch) return { webinarId: webinarMatch[1] }
+    
+    // Generic webex meeting
+    const genericMatch = url.match(/\.webex\.com\/.*\/([^\/\?&]+)/)
+    if (genericMatch) return { meetingId: genericMatch[1] }
+    
+    return null
+  }
+
   // URL health check
   const checkUrlHealth = async (url: string): Promise<boolean> => {
     try {
@@ -238,6 +319,16 @@ export const useEventStatus = () => {
     getPlatformStatus,
     checkUrlHealth,
     clearStatusCache,
-    getTimeBasedStatus
+    getTimeBasedStatus,
+    extractYouTubeVideoId,
+    extractTwitchChannelName,
+    extractFacebookLiveId,
+    extractInstagramUsername,
+    extractTikTokUsername,
+    extractDiscordInfo,
+    extractZoomMeetingId,
+    extractTeamsMeetingId,
+    extractGoogleMeetId,
+    extractWebExInfo
   }
 }

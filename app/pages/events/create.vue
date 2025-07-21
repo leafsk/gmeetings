@@ -46,6 +46,9 @@
       </div>
     </div>
 
+    <!-- Supported Platforms Info -->
+    <SupportedPlatforms class="mb-8" />
+
     <!-- Form -->
     <form @submit.prevent="createEvent" class="space-y-8">
       <!-- Basic Information -->
@@ -119,11 +122,17 @@
               <template v-if="form.category === 'internal'">
                 <option value="youtube">YouTube Live</option>
                 <option value="twitch">Twitch Stream</option>
+                <option value="facebook-live">Facebook Live</option>
+                <option value="instagram-live">Instagram Live</option>
+                <option value="tiktok-live">TikTok Live</option>
+                <option value="discord">Discord Event</option>
                 <option value="other">Other Streaming Platform</option>
               </template>
               <template v-else-if="form.category === 'external'">
                 <option value="zoom">Zoom Meeting</option>
+                <option value="teams">Microsoft Teams</option>
                 <option value="meet">Google Meet</option>
+                <option value="webex">WebEx Meeting</option>
                 <option value="other">Other Meeting Platform</option>
               </template>
             </select>
@@ -185,14 +194,14 @@
         </div>
       </div>
 
-      <!-- Stream/Link Information -->
+      <!-- Platform Information -->
       <div v-if="form.category" class="bg-white p-6 rounded-lg border border-gray-200">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">
           {{ form.category === 'internal' ? 'Stream Information' : 'Meeting Information' }}
         </h2>
         
         <div class="space-y-6">
-          <!-- Internal Event Fields -->
+          <!-- Internal Event Fields (Streaming) -->
           <template v-if="form.category === 'internal'">
             <!-- Stream URL -->
             <div>
@@ -204,100 +213,68 @@
                 v-model="form.streamUrl"
                 type="url"
                 required
-                placeholder="https://youtube.com/watch?v=... or https://twitch.tv/..."
+                placeholder="https://youtube.com/watch?v=..., https://twitch.tv/..., https://facebook.com/..., etc."
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <p class="text-sm text-gray-500 mt-1">
-                Your live stream URL that audience will watch embedded on our platform.
+                Your live stream URL that audience will watch on our platform.
               </p>
             </div>
           </template>
 
-          <!-- External Event Fields -->
+          <!-- External Event Fields (Meetings) -->
           <template v-else-if="form.category === 'external'">
-            <!-- Stage URL -->
-            <div>
-              <label for="stageUrl" class="block text-sm font-medium text-gray-700 mb-1">
-                Stage URL *
-              </label>
-              <input
-                id="stageUrl"
-                v-model="form.stageUrl"
-                type="url"
-                required
-                placeholder="https://your-stage-url.com/..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <p class="text-sm text-gray-500 mt-1">
-                The URL for the presenter's stage (e.g., a private Google Meet link).
-              </p>
-            </div>
-
-            <!-- Participant Link -->
+            <!-- Meeting Link (Simplified) -->
             <div>
               <label for="participantLink" class="block text-sm font-medium text-gray-700 mb-1">
-                Participant Meeting Link *
+                Meeting Link *
               </label>
               <input
                 id="participantLink"
                 v-model="form.participantLink"
                 type="url"
                 required
-                placeholder="https://zoom.us/j/... or https://meet.google.com/..."
+                placeholder="https://zoom.us/j/..., https://teams.microsoft.com/..., https://meet.google.com/..., etc."
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <p class="text-sm text-gray-500 mt-1">
-                Private link for people who will actively participate in the meeting.
+                The meeting link that participants will use to join the event.
               </p>
             </div>
 
-            <!-- Stream URL (Optional for External) -->
+            <!-- Optional Stream URL for meetings -->
             <div>
               <label for="streamUrl" class="block text-sm font-medium text-gray-700 mb-1">
-                Audience Stream URL (Optional)
+                Live Stream URL (Optional)
               </label>
               <input
                 id="streamUrl"
                 v-model="form.streamUrl"
                 type="url"
-                placeholder="https://youtube.com/watch?v=... (if you're streaming the meeting)"
+                placeholder="https://youtube.com/watch?v=... (if streaming the meeting for viewers)"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <p class="text-sm text-gray-500 mt-1">
-                If you're streaming your meeting live, add the stream URL here for audience to watch.
-              </p>
-            </div>
-
-            <!-- External Link (Fallback) -->
-            <div v-if="!form.streamUrl">
-              <label for="externalLink" class="block text-sm font-medium text-gray-700 mb-1">
-                Public Event Page (Optional)
-              </label>
-              <input
-                id="externalLink"
-                v-model="form.externalLink"
-                type="url"
-                placeholder="https://your-event-platform.com/event"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <p class="text-sm text-gray-500 mt-1">
-                Link to external event page if no live stream is available.
+                If you're also streaming your meeting live for viewers, add the stream URL here.
               </p>
             </div>
           </template>
 
-          <!-- Thumbnail URL -->
+          <!-- Thumbnail URL (Optional for all) -->
           <div>
             <label for="thumbnailUrl" class="block text-sm font-medium text-gray-700 mb-1">
-              Event Thumbnail URL
+              Event Thumbnail URL (Optional)
             </label>
             <input
               id="thumbnailUrl"
               v-model="form.thumbnailUrl"
               type="url"
-              placeholder="https://example.com/image.jpg"
+              placeholder="https://example.com/image.jpg (we'll auto-generate if not provided)"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+            <p class="text-sm text-gray-500 mt-1">
+              Custom thumbnail for your event. We'll automatically fetch one from your platform if not provided.
+            </p>
           </div>
         </div>
       </div>
@@ -421,7 +398,6 @@ const form = ref<CreateEventData>({
   category: 'internal',
   type: 'youtube',
   streamUrl: '',
-  externalLink: '',
   participantLink: '',
   thumbnailUrl: '',
   tags: [],
@@ -462,7 +438,6 @@ const onCategoryChange = () => {
   form.value.type = ''
   // Reset URLs when switching categories
   form.value.streamUrl = ''
-  form.value.externalLink = ''
   form.value.participantLink = ''
 }
 
@@ -499,8 +474,8 @@ const createEvent = async () => {
         return
       }
     } else if (form.value.category === 'external') {
-      if (!form.value.stageUrl) {
-        alert('Stage URL is required for meeting events')
+      if (!form.value.participantLink) {
+        alert('Meeting link is required for meeting events')
         return
       }
     }
@@ -516,9 +491,11 @@ const createEvent = async () => {
       }
     }
 
-    // Create event data with proper Date objects
+    // Create event data with proper Date objects and field mapping
     const eventData = {
       ...form.value,
+      // Map participantLink to stageUrl for backend compatibility
+      stageUrl: form.value.participantLink,
       startDate: isAdhoc.value ? new Date() : new Date(form.value.startDate),
       endDate: isAdhoc.value ? new Date(new Date().getTime() + 24 * 60 * 60 * 1000) : new Date(form.value.endDate),
       status: isAdhoc.value ? 'adhoc' : 'upcoming'
