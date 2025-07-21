@@ -1,4 +1,4 @@
-name: Deploy to Firebase Hosting
+name: Deploy to Firebase Hosting and Functions
 
 on:
   push:
@@ -16,21 +16,26 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
-      - name: Install dependencies
-        working-directory: ./video-community-app
+      - name: Install app dependencies
         run: npm ci
 
-      - name: Build project
-        working-directory: ./video-community-app
+      - name: Build app
         run: npm run build
 
-      - name: Deploy to Firebase Hosting
+      - name: Install Firebase Functions dependencies
+        working-directory: ./functions
+        run: npm ci
+
+      - name: Build Firebase Functions
+        working-directory: ./functions
+        run: npm run build
+
+      - name: Deploy to Firebase (Hosting + Functions)
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
           firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_GMEETINGS }}"
           channelId: live
-          projectId: growni10x-community
-          entryPoint: ./video-community-app 
+          projectId: growni10x-community 
